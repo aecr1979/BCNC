@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: ecomerce
+  devtools:
+    restart:
+      enabled: false
+  datasource:
+    url: jdbc:h2:mem:catalog
+    driver-class-name: org.h2.Driver
+    username: ecommerce
+    password: mQ-*J*N+h~:J0U@?2
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  sql:
+    init:
+      mode: always
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+    operationsSorter: method
+  api-docs:
+    path: /v3/api-docs
+  default-flat-param-object: true
+
+catalog:
+  security:
+    auth:
+      token-secret: BCNC-CATALOG-TOKEN-SECRET-CHANGE-ME-2026
+      token-validity-minutes: 60
+      refresh-token-validity-minutes: 10080
+
