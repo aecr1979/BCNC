@@ -1,0 +1,20 @@
+services:
+  catalog:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bcnc/catalog:latest
+    container_name: bcnc-catalog
+    ports:
+      - "8080:8080"
+    environment:
+      # Override Spring Boot config via env vars if needed
+      CATALOG_SECURITY_AUTH_TOKEN_SECRET: BCNC-CATALOG-TOKEN-SECRET-CHANGE-ME-2026
+    restart: unless-stopped
+    healthcheck:
+      # Lightweight TCP liveness probe on the app port (no extra deps required)
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && exit 0 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
