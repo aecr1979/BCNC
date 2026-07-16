@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.bcnc.ecomerce</groupId>
 	<artifactId>catalog</artifactId>
-	<version>0.0.1-Candidate</version>
+	<version>0.0.1</version>
 	<name>BCNC Catalog</name>
 	<description>Microservicio Spring Boot para consultar el precio aplicable de un producto en una cadena y fecha determinadas</description>
 	<url>https://www.bcnc.com</url>
