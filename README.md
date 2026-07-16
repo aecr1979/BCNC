@@ -186,6 +186,41 @@ Resultado esperado:
 
 La consola H2 está disponible en `http://localhost:8080/h2-console` (JDBC URL `jdbc:h2:mem:catalog`).
 
+## Ejecutar con Docker Compose
+
+La aplicación está contenerizada mediante un `Dockerfile` multi-etapa (compila con Maven y ejecuta con un JRE de Eclipse Temurin 21) y un [`docker-compose.yml`](docker-compose.yml).
+
+### Requisitos
+
+- Docker Engine 24+ y Docker Compose v2.
+
+### Construir y arrancar
+
+```powershell
+docker compose up --build
+```
+
+Para ejecutarlo en segundo plano:
+
+```powershell
+docker compose up -d --build
+```
+
+La API quedará disponible en `http://localhost:8080` (mapeo de `8080:8080`).
+
+### Parar y limpiar
+
+```powershell
+docker compose down
+```
+
+### Notas de configuración
+
+- El secreto de los tokens (`catalog.security.auth.token-secret`) se puede sobreescribir con la variable de entorno `CATALOG_SECURITY_AUTH_TOKEN_SECRET` definida en `docker-compose.yml`. **Cámbialo en entornos reales.**
+- La base de datos es H2 en memoria, por lo que los datos (precios y credenciales) se cargan desde `src/main/resources/data/*.json` en cada arranque y no persisten entre reinicios del contenedor.
+- El `Dockerfile` ejecuta la app como usuario no root (`spring`) y el `healthcheck` realiza una sonda TCP ligera sobre el puerto `8080`.
+- El build usa el wrapper de Maven (`./mvnw`) incluido en el repo, por lo que no es necesario tener Maven instalado en la máquina host.
+
 ## Ejecutar pruebas
 
 ```powershell
