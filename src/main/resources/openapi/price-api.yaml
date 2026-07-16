@@ -1,0 +1,391 @@
+openapi: 3.0.3
+info:
+  title: BCNC Catalog - Price Query API
+  version: 1.0.0
+  description: |
+    API to query the applicable price (tarifa) for a product in a given commercial
+    chain (cadena) at a specific application date.
+
+    Business rule: when several rates overlap for the same product, chain and date,
+    the one with the highest priority is applied.
+  contact:
+    name: BCNC E-Commerce Team
+  license:
+    name: Proprietary
+    url: https://www.bcnc.com/licenses/proprietary
+
+servers:
+  - url: /
+    description: Local development server
+
+tags:
+  - name: Prices
+    description: Price query operations
+  - name: Authentication
+    description: Token generation operations
+
+paths:
+  /api/v1/auth/token:
+    post:
+      tags:
+        - Authentication
+      operationId: generateAccessToken
+      summary: Generate an access token for the API
+      description: |
+        Authenticates a consumer using a simple client text string (`clientKey`),
+        `username` and `password`, and returns a bearer token that must be sent in
+        the `Authorization` header to access protected endpoints.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+            examples:
+              default:
+                summary: Basic authentication payload
+                value:
+                  clientKey: "BCNC-CLIENT"
+                  username: "catalog-user"
+                  password: "catalog-password"
+      responses:
+        '200':
+          $ref: '#/components/responses/AccessTokenGenerated'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/auth/refresh:
+    post:
+      tags:
+        - Authentication
+      operationId: refreshAccessToken
+      summary: Refresh the API access token
+      description: |
+        Receives a valid refresh token and returns a new bearer token pair.
+        Refresh tokens are intended only for token renewal and must not be used
+        to access protected business endpoints.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+            examples:
+              default:
+                summary: Refresh token payload
+                value:
+                  refreshToken: "ZXlKaGJHY2lPaUpJVXpJMU5pSjkuZXlKemRXSWlPaUpqWVhSaGJHOW5MWFZ6WlhJaUxDSmpiR2xsYm5STFpYa2lPaUpDUTA1REwxTkZVbE1pLnJlZnJlc2g"
+      responses:
+        '200':
+          $ref: '#/components/responses/AccessTokenGenerated'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/prices:
+    get:
+      tags:
+        - Prices
+      operationId: getApplicablePrice
+      summary: Get the applicable price for a product, chain and date
+      description: |
+        Returns the price that must be applied for the given product identifier,
+        commercial chain identifier and application date. If no applicable rate is
+        found, a 404 is returned.
+
+        Test 1 example:
+        - applicationDate: `2020-06-14T10:00:00Z`
+        - productId: `35455`
+        - chainId: `1` (ZARA)
+
+        Expected result:
+        - priceList: `1`
+        - startDate: `2020-06-14T00:00:00Z` (START_DATE)
+        - endDate: `2020-12-31T23:59:59Z` (END_DATE)
+        - price: `35.50`
+        - currency: `EUR`
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ApplicationDate'
+        - $ref: '#/components/parameters/ProductId'
+        - $ref: '#/components/parameters/ChainId'
+      responses:
+        '200':
+          $ref: '#/components/responses/ApplicablePriceFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/PriceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: OpaqueToken
+      description: Bearer token obtained from `POST /api/v1/auth/token`.
+  parameters:
+    ApplicationDate:
+      name: applicationDate
+      in: query
+      required: true
+      description: Application (effective) date and time, in RFC 3339 format (example `2020-06-14T10:00:00Z`).
+      schema:
+        type: string
+        format: date-time
+        example: "2020-06-14T10:00:00Z"
+    ProductId:
+      name: productId
+      in: query
+      required: true
+      description: Product identifier.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+        example: 35455
+    ChainId:
+      name: chainId
+      in: query
+      required: true
+      description: Commercial chain (cadena / brand) identifier.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+        example: 1
+  responses:
+    AccessTokenGenerated:
+      description: Access token generated successfully.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TokenResponse'
+          examples:
+            default:
+              value:
+                accessToken: "ZXlKaGJHY2lPaUpJVXpJMU5pSjkuZXlKemRXSWlPaUpqWVhSaGJHOW5MWFZ6WlhJaUxDSmpiR2xsYm5STFpYa2lPaUpDUTA1REwxTkZVbE1pTENKbGVIQWlPakUzTmpNMU5qTTBNREI5LnNpZ25hdHVyZQ"
+                refreshToken: "ZXlKaGJHY2lPaUpJVXpJMU5pSjkuZXlKemRXSWlPaUpxYzNWa0lpd2ljbVZtY21WemFDSTZNVGN6TkRVMk16QXdMQ0pwWVhRaU9qRTNNelExTmpNek1Dd2lhblJwSWpvaVptVTVOV1k0T1RjdE5EWTVOQzAwT1RVeExUZ3dNV0l0TVdFMk16SmtNVEF6TVRrMSJ"
+                tokenType: "Bearer"
+                expiresAt: "2030-06-14T12:00:00Z"
+                refreshExpiresAt: "2030-06-21T12:00:00Z"
+    Unauthorized:
+      description: Authentication required or invalid credentials/token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalidCredentials:
+              summary: Invalid authentication request
+              value:
+                code: AUTHENTICATION_FAILED
+                message: Invalid authentication credentials
+            invalidRefreshToken:
+              summary: Invalid refresh token
+              value:
+                code: AUTHENTICATION_FAILED
+                message: Invalid refresh token
+            invalidToken:
+              summary: Missing or invalid bearer token
+              value:
+                code: UNAUTHORIZED
+                message: A valid bearer token is required to access this resource
+    ApplicablePriceFound:
+      description: The applicable price was found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PriceResponse'
+          examples:
+            default:
+              summary: Applicable price response
+              value:
+                productId: 35455
+                chainId: 1
+                priceList: 2
+                startDate: "2020-06-14T15:00:00Z"
+                endDate: "2020-06-14T18:30:00Z"
+                price: 25.45
+                currency: "EUR"
+            test1:
+              summary: Test 1 - petición a las 10:00 del día 14 para el producto 35455 y brand 1 (ZARA)
+              value:
+                productId: 35455
+                chainId: 1
+                priceList: 1
+                startDate: "2020-06-14T00:00:00Z"
+                endDate: "2020-12-31T23:59:59Z"
+                price: 35.50
+                currency: "EUR"
+    BadRequest:
+      description: Invalid or missing query parameters.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missingParameter:
+              summary: Missing required parameter
+              value:
+                code: MISSING_PARAMETER
+                message: Required parameter 'applicationDate' is missing
+            invalidParameter:
+              summary: Invalid parameter format
+              value:
+                code: INVALID_PARAMETER
+                message: Parameter 'applicationDate' has an invalid value 'invalid-date'
+    PriceNotFound:
+      description: No applicable price found for the given criteria.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              value:
+                code: PRICE_NOT_FOUND
+                message: No applicable price found for the given criteria.
+    InternalError:
+      description: Unexpected internal error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              value:
+                code: INTERNAL_ERROR
+                message: An unexpected error occurred
+  schemas:
+    TokenRequest:
+      type: object
+      description: Authentication request used to generate an API access token.
+      properties:
+        clientKey:
+          type: string
+          description: Simple client text string used as the first authentication factor.
+          example: "BCNC-CLIENT"
+        username:
+          type: string
+          description: API username.
+          example: "catalog-user"
+        password:
+          type: string
+          format: password
+          description: API password.
+          example: "catalog-password"
+      required:
+        - clientKey
+        - username
+        - password
+    TokenResponse:
+      type: object
+      description: Generated access/refresh bearer tokens and their expiration metadata.
+      properties:
+        accessToken:
+          type: string
+          description: "Token to be sent as `Authorization: Bearer <token>`."
+          example: "ZXlKaGJHY2lPaUpJVXpJMU5pSjkuZXlKemRXSWlPaUpqWVhSaGJHOW5MWFZ6WlhJaUxDSmpiR2xsYm5STFpYa2lPaUpDUTA1REwxTkZVbE1pTENKbGVIQWlPakUzTmpNMU5qTTBNREI5LnNpZ25hdHVyZQ"
+        refreshToken:
+          type: string
+          description: Token to be sent to `POST /api/v1/auth/refresh` to obtain a new token pair.
+          example: "ZXlKaGJHY2lPaUpJVXpJMU5pSjkuZXlKemRXSWlPaUpxYzNWa0lpd2ljbVZtY21WemFDSTZNVGN6TkRVMk16QXdMQ0pwWVhRaU9qRTNNelExTmpNek1Dd2lhblJwSWpvaVptVTVOV1k0T1RjdE5EWTVOQzAwT1RVeExUZ3dNV0l0TVdFMk16SmtNVEF6TVRrMSJ"
+        tokenType:
+          type: string
+          description: Authorization scheme to use in the HTTP header.
+          example: "Bearer"
+        expiresAt:
+          type: string
+          format: date-time
+          description: Expiration date-time of the generated access token.
+          example: "2030-06-14T12:00:00Z"
+        refreshExpiresAt:
+          type: string
+          format: date-time
+          description: Expiration date-time of the generated refresh token.
+          example: "2030-06-21T12:00:00Z"
+      required:
+        - accessToken
+        - refreshToken
+        - tokenType
+        - expiresAt
+        - refreshExpiresAt
+    RefreshTokenRequest:
+      type: object
+      description: Refresh token payload used to obtain a new access token pair.
+      properties:
+        refreshToken:
+          type: string
+          description: Refresh token returned by a previous authentication response.
+          example: "ZXlKaGJHY2lPaUpJVXpJMU5pSjkuZXlKemRXSWlPaUpxYzNWa0lpd2ljbVZtY21WemFDSTZNVGN6TkRVMk16QXdMQ0pwWVhRaU9qRTNNelExTmpNek1Dd2lhblJwSWpvaVptVTVOV1k0T1RjdE5EWTVOQzAwT1RVeExUZ3dNV0l0TVdFMk16SmtNVEF6TVRrMSJ"
+      required:
+        - refreshToken
+    PriceResponse:
+      type: object
+      description: Applicable price details for the requested criteria.
+      properties:
+        productId:
+          type: integer
+          format: int64
+          description: Product identifier.
+          example: 35455
+        chainId:
+          type: integer
+          format: int64
+          description: Commercial chain (cadena / brand) identifier.
+          example: 1
+        priceList:
+          type: integer
+          format: int64
+          description: Tarifa a aplicar (rate/list identifier that applies).
+          example: 1
+        startDate:
+          type: string
+          format: date-time
+          description: Fecha inicial de aplicación de la tarifa seleccionada (START_DATE).
+          example: "2020-06-14T00:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          description: Fecha final de aplicación de la tarifa seleccionada (END_DATE).
+          example: "2020-12-31T23:59:59Z"
+        price:
+          type: number
+          format: double
+          multipleOf: 0.01
+          description: Precio final a aplicar (final price to apply).
+          example: 35.50
+        currency:
+          type: string
+          description: ISO 4217 currency code.
+          example: "EUR"
+      required:
+        - productId
+        - chainId
+        - priceList
+        - startDate
+        - endDate
+        - price
+        - currency
+    ErrorResponse:
+      type: object
+      description: Standard error payload.
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code.
+          example: "PRICE_NOT_FOUND"
+        message:
+          type: string
+          description: Human-readable error description.
+          example: "No applicable price found for the given criteria."
+      required:
+        - code
+        - message
