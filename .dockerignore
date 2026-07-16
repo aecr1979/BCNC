@@ -1,0 +1,30 @@
+# Maven / build output
+target/
+**/target/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+.springBeans
+.sts4-cache
+
+# Git
+.git/
+.gitattributes
+.gitignore
+
+# OS / misc
+.DS_Store
+*.log
+boot.log
+HELP.md
+
+# Local data / runtime
+**/*.class
